@@ -1,2 +1,2 @@
 # wine-case
-Wine Case
+Wine Case - Regressão Linear e Logística
