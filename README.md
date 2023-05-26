@@ -1,6 +1,8 @@
 # wine-case
 Wine Case - Exercício de Regressão Linear, Logística, Árvore de Decisão, SVM etc.
 
+ENUNCIADO COMPLETO:
+
 Faça o módulo do Kaggle Intro to Machine Learning:
 Comprove a finalização do módulo com um print que contenha data e identificação do aluno. 
 
