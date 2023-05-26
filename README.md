@@ -1,5 +1,5 @@
 # wine-case
-Wine Case - Exercício de Regressão Linear, Logística, Árvore de Decisão, SVM etc.
+Wine Case - Exercício de Regressão Linear, Logística, Árvore de Decisão, SVM, Validação Cruzada etc.
 
 ENUNCIADO COMPLETO:
 
