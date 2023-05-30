@@ -227,6 +227,7 @@ X_test_scaled = scaler.transform(X_test)
 logreg = LogisticRegression(max_iter=10000)
 
 
+
 logreg.fit(X_train_scaled, y_train)
 
 # %%
@@ -643,16 +644,142 @@ results
 # 
 
 # %%
-# 0,83 - melhor resultado foi o SVM
+# 0,83 - melhor resultado foi o SVM. Mas fazendo a curva ROC:
 
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import roc_curve, auc
+from sklearn.model_selection import StratifiedKFold
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Converter os dados em DataFrames
+X_train_scaled = pd.DataFrame(X_train_scaled, columns=X_train.columns)
+y_train = pd.Series(y_train)
+
+# Create the models
+logistic_reg = LogisticRegression()
+svm = SVC(probability=True)
+dt = DecisionTreeClassifier()
+
+# Create a list of models
+models = [
+    ('Logistic Regression', logistic_reg),
+    ('SVM', svm),
+    ('Decision Tree', dt)
+]
+
+# Initialize lists to store mean values for ROC curve
+mean_fpr = np.linspace(0, 1, 100)
+mean_tpr = np.zeros_like(mean_fpr)
+
+# Create a figure
+plt.figure(figsize=(10, 8))
+
+# Iterate over models
+for name, model in models:
+    # Initialize lists to store tpr and auc for each fold
+    tprs = []
+    aucs = []
+    
+    # Create Stratified K-fold cross-validation
+    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    
+    # Iterate over folds
+    for train_index, test_index in cv.split(X_train_scaled, y_train):
+        # Get training and test data for this fold
+        X_train_cv, X_test_cv = X_train_scaled.iloc[train_index], X_train_scaled.iloc[test_index]
+        y_train_cv, y_test_cv = y_train.iloc[train_index], y_train.iloc[test_index]
+        
+        # Train the model
+        model.fit(X_train_cv, y_train_cv)
+        
+        # Get predicted probabilities
+        y_pred_prob = model.predict_proba(X_test_cv)[:, 1]
+        
+        # Calculate the ROC curve
+        fpr, tpr, _ = roc_curve(y_test_cv, y_pred_prob)
+        
+        # Interpolate the ROC curve at mean_fpr
+        mean_tpr += np.interp(mean_fpr, fpr, tpr)
+        mean_tpr[0] = 0.0
+        
+        # Calculate the AUC score
+        roc_auc = auc(fpr, tpr)
+        
+        # Store the tpr and auc for this fold
+        tprs.append(tpr)
+        aucs.append(roc_auc)
+    
+    # Calculate the mean tpr and auc across folds
+    mean_tpr /= cv.get_n_splits()
+    mean_auc = auc(mean_fpr, mean_tpr)
+    
+    # Plot the ROC curve
+    plt.plot(mean_fpr, mean_tpr, label=f'{name} (AUC = {mean_auc:.2f})')
+
+# Plot the random guess line
+plt.plot([0, 1], [0, 1], linestyle='--', color='gray', label='Random Guess')
+
+# Set labels and title
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Receiver Operating Characteristic (ROC) Curve')
+plt.legend()
+
+# Show the plot
+plt.show()
 
 
 # %%
-
+# Logo, a maior AUC é da árvore de decisão (DecisionTree, 0,62) e, por isso, deveria ser o modelo ecolhido.
 
 # %% [markdown]
 # Com a escolha do melhor modelo, use os dados de vinho tinto, presentes na base original e faça a inferência (não é para treinar novamente!!!) para saber quantos vinhos são bons ou ruins. Utilize o mesmo critério utilizado com os vinhos brancos, para comparar o desempenho do modelo. Ele funciona da mesma forma para essa nova base? Justifique.
-# 
+
+# %%
+# Carregar os dados de vinho tinto
+red_wine_data = pd.read_csv('winequalityN.csv')
+
+
+from sklearn.svm import SVC
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.impute import SimpleImputer
+import pandas as pd
+
+
+# Separar os atributos/features e as labels
+red_wine_features = red_wine_data.drop('quality', axis=1)
+red_wine_labels = red_wine_data['quality']
+
+# Converter a coluna 'color' em valores numéricos utilizando codificação one-hot
+red_wine_features_encoded = pd.get_dummies(red_wine_features)
+
+# Preencher os valores ausentes (NaN) utilizando um imputador
+imputer = SimpleImputer()
+red_wine_features_imputed = imputer.fit_transform(red_wine_features_encoded)
+
+# Normalizar os atributos
+scaler = StandardScaler()
+red_wine_features_normalized = scaler.fit_transform(red_wine_features_imputed)
+
+# Treinar um modelo SVM com os dados de vinho tinto
+svm_model = SVC()
+svm_model.fit(red_wine_features_normalized, red_wine_labels)
+
+# Realizar a inferência utilizando o modelo SVM
+red_wine_predictions = svm_model.predict(red_wine_features_normalized)
+
+# Contar a quantidade de vinhos bons e ruins
+red_wine_good = (red_wine_predictions == 1).sum()
+red_wine_bad = (red_wine_predictions == 0).sum()
+
+print("Quantidade de vinhos bons (red wine):", red_wine_good)
+print("Quantidade de vinhos ruins (red wine):", red_wine_bad)
+
+
+# %% [markdown]
 # Disponibilize os códigos usados para responder da questão 2 a 6 em uma conta github e indique o link para o repositório.
 # 
 # https://github.com/FabioRochaPoeta/wine-case/blob/main/analisando-db-vinho-branco.ipynb
